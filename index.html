@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>夢幻寵物大亨 v7.1 - 即時存檔版</title>
+  <style>
+    :root {
+      --bg-color: #f0f4f8;
+      --primary-color: #4a90e2;
+      --card-bg: #ffffff;
+      --text-color: #333;
+      --btn-click: #f1c40f;
+      --btn-gacha: #9b59b6;
+      --btn-slot: #34495e;
+      --btn-rebirth: #8e44ad;
+      --btn-delete: #e74c3c;
+      --btn-gallery: #16a085;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #2c3e50;
+      text-align: center;
+    }
+
+    /* --- 右上角功能列 --- */
+    .top-right-controls {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+      align-items: flex-end;
+    }
+
+    .hud-btn {
+      background: #e67e22;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 5px rgba(0, 0, 0, 0.2);
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: transform 0.2s;
+      font-size: 0.9rem;
+    }
+
+    .hud-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .hud-btn.gallery-btn {
+      background: var(--btn-gallery);
+    }
+
+    /* --- 升級模式切換 --- */
+    .upgrade-mode-container {
+      background: white;
+      padding: 5px;
+      border-radius: 20px;
+      display: flex;
+      gap: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .mode-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 10px;
+      border-radius: 15px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #7f8c8d;
+    }
+
+    .mode-btn.active {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* --- 彈出視窗 (共用) --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 2000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-content {
+      background: white;
+      width: 90%;
+      max-width: 500px;
+      border-radius: 15px;
+      padding: 20px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      position: relative;
+      border: 2px solid var(--primary-color);
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #999;
+    }
+
+    /* --- 抽蛋機商店樣式 --- */
+    .gacha-shop-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .gacha-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #ddd;
+      background: #f9f9f9;
+      transition: transform 0.2s;
+    }
+
+    .gacha-item:hover {
+      transform: scale(1.02);
+      border-color: var(--primary-color);
+    }
+
+    /* 不同等級的顏色 */
+    .g-tier-1 {
+      border-left: 8px solid #95a5a6;
+    }
+
+    /* 普通 */
+    .g-tier-2 {
+      border-left: 8px solid #2ecc71;
+    }
+
+    /* 高級 */
+    .g-tier-3 {
+      border-left: 8px solid #3498db;
+    }
+
+    /* 特級 */
+    .g-tier-4 {
+      border-left: 8px solid #f1c40f;
+    }
+
+    /* 大師 */
+    .g-tier-5 {
+      border-left: 8px solid #e74c3c;
+      background: #fff5f5;
+    }
+
+    /* 魔王 */
+    .gacha-info h4 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .gacha-info p {
+      margin: 5px 0 0;
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .gacha-buy-btn {
+      background: var(--btn-gacha);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      min-width: 100px;
+    }
+
+    .gacha-buy-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* --- 遊戲主介面 --- */
+    .stats-bar {
+      background: var(--card-bg);
+      padding: 15px 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.1rem;
+      border-bottom: 4px solid var(--primary-color);
+      width: 95%;
+      max-width: 900px;
+      margin-bottom: 20px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 80px;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #7f8c8d;
+    }
+
+    .stat-value {
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    #money {
+      color: #d35400;
+    }
+
+    #gps {
+      color: #27ae60;
+    }
+
+    #multiplier {
+      color: #8e44ad;
+    }
+
+    .controls {
+      margin: 10px 0 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button.game-btn {
+      padding: 12px 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.1s;
+      font-weight: bold;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+      color: white;
+      position: relative;
+    }
+
+    button.game-btn:active {
+      transform: translateY(4px);
+      box-shadow: none;
+    }
+
+    button.game-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      filter: grayscale(1);
+    }
+
+    .btn-click {
+      background-color: var(--btn-click);
+      color: #333 !important;
+    }
+
+    .btn-gacha {
+      background-color: var(--btn-gacha);
+    }
+
+    .btn-slot {
+      background-color: var(--btn-slot);
+    }
+
+    .btn-rebirth {
+      background: linear-gradient(45deg, #8e44ad, #c0392b);
+      border: 2px solid #fff;
+      box-shadow: 0 0 10px rgba(142, 68, 173, 0.5);
+      display: none;
+    }
+
+    .btn-reset {
+      background-color: #7f8c8d;
+      min-width: auto !important;
+      font-size: 0.8rem;
+      padding: 10px;
+    }
+
+    .cost-text {
+      font-size: 0.8em;
+      opacity: 0.9;
+      margin-top: 4px;
+      font-weight: normal;
+    }
+
+    .pet-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
+      width: 100%;
+      max-width: 1000px;
+      padding-bottom: 50px;
+    }
+
+    .pet-card {
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      border-top: 5px solid #ccc;
+      transition: transform 0.2s;
+      overflow: hidden;
+    }
+
+    .pet-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .pet-icon {
+      font-size: 2.5rem;
+      margin: 5px 0;
+    }
+
+    .pet-name {
+      font-weight: bold;
+      font-size: 1rem;
+    }
+
+    .pet-rarity {
+      font-size: 0.75rem;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .pet-stats {
+      font-size: 0.85rem;
+      color: #555;
+      background: #f8f9fa;
+      padding: 3px;
+      border-radius: 4px;
+      margin: 2px 0;
+    }
+
+    .btn-delete-pet {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 24px;
+      height: 24px;
+      background-color: var(--btn-delete);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+      z-index: 10;
+    }
+
+    .btn-delete-pet:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    .btn-upgrade {
+      background-color: var(--primary-color);
+      color: white;
+      width: 100%;
+      margin-top: auto;
+      border: none;
+      border-radius: 5px;
+      padding: 8px 0;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn-upgrade:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    /* 稀有度顏色 */
+    .rarity-common {
+      border-color: #95a5a6;
+      color: #7f8c8d;
+    }
+
+    .rarity-rare {
+      border-color: #3498db;
+      color: #2980b9;
+    }
+
+    .rarity-epic {
+      border-color: #9b59b6;
+      color: #8e44ad;
+    }
+
+    .rarity-legendary {
+      border-color: #f1c40f;
+      color: #f39c12;
+    }
+
+    .rarity-mythical {
+      border-color: #e74c3c;
+      color: #c0392b;
+      animation: glow 2s infinite;
+    }
+
+    @keyframes glow {
+      0% {
+        box-shadow: 0 0 5px #e74c3c;
+      }
+
+      50% {
+        box-shadow: 0 0 20px #e74c3c;
+      }
+
+      100% {
+        box-shadow: 0 0 5px #e74c3c;
+      }
+    }
+
+    /* 浮動訊息 */
+    #message-area {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+      z-index: 3000;
+    }
+
+    .show-message {
+      opacity: 1 !important;
+    }
+
+    /* 存檔提示小圖示 */
+    #save-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(46, 204, 113, 0.9);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+      z-index: 3000;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .show-save {
+      opacity: 1 !important;
+    }
+
+    .full-slots {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+
+    /* 圖鑑網格 */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .gallery-item {
+      background: #eee;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      opacity: 0.5;
+      filter: grayscale(1);
+    }
+
+    .gallery-item.collected {
+      opacity: 1;
+      filter: grayscale(0);
+      background: #e8f6f3;
+      border: 1px solid #1abc9c;
+    }
+
+    .g-icon {
+      font-size: 2rem;
+    }
+
+    .g-name {
+      font-size: 0.7rem;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="top-right-controls"> <button class="hud-btn" onclick="openModal('ach-modal')"> 🏆 成就 <span id="ach-badge">0/9</span> </button> <button class="hud-btn gallery-btn" onclick="openModal('gallery-modal')"> 📘 圖鑑 </button>
+    <div class="upgrade-mode-container"> <button class="mode-btn active" onclick="setUpgradeMode(1)" id="mode-1">1x</button> <button class="mode-btn" onclick="setUpgradeMode(10)" id="mode-10">10x</button> <button class="mode-btn" onclick="setUpgradeMode('max')" id="mode-max">Max</button> </div>
+  </div>
+  <h1>🏰 夢幻寵物大亨 <small style="font-size:0.4em; color: #7f8c8d;">v7.1 即時存檔</small></h1>
+  <div class="stats-bar">
+    <div class="stat-item"> <span class="stat-label">💰 現有資金</span> <span class="stat-value" id="money">$0</span> </div>
+    <div class="stat-item"> <span class="stat-label">⚡ 每秒收入</span> <span class="stat-value" id="gps">$0</span> </div>
+    <div class="stat-item"> <span class="stat-label">📦 欄位</span> <span class="stat-value" id="slots">0 / 5</span> </div>
+    <div class="stat-item"> <span class="stat-label">🌀 輪迴倍率</span> <span class="stat-value" id="multiplier">x1.0</span> </div>
+  </div>
+  <div class="controls"> <button class="game-btn btn-click" onclick="manualClick()"> <span>🔨 手動打工</span> <span class="cost-text">獲得 +$<span id="click-val">10</span></span> </button> <button class="game-btn btn-gacha" onclick="openModal('gacha-modal')"> <span>🎰 轉蛋商店</span> <span class="cost-text">五大等級</span> </button> <button class="game-btn btn-slot" id="slotBtn" onclick="buySlot()"> <span>📦 擴充欄位</span> <span class="cost-text">花費: $<span id="slot-cost-display">500</span></span> </button> <button class="game-btn btn-rebirth" id="rebirthBtn" onclick="rebirth()"> <span>🌀 進行轉生</span> <span class="cost-text">需: $1.0M</span> </button> <button class="game-btn btn-reset" onclick="hardReset()"> <span>🗑️ 刪檔</span> </button> </div>
+  <div id="pet-list" class="pet-container"></div>
+  <div id="message-area">訊息提示</div>
+  <div id="save-toast">💾 資料已自動儲存</div>
+  <div id="gacha-modal" class="modal-overlay" onclick="closeModal(event, 'gacha-modal')">
+    <div class="modal-content"> <span class="close-modal" onclick="document.getElementById('gacha-modal').style.display='none'">&times;</span>
+      <h3 style="text-align:center;">🎰 選擇抽蛋機器</h3>
+      <div class="gacha-shop-list" id="gacha-list-container"> </div>
+    </div>
+  </div>
+  <div id="ach-modal" class="modal-overlay" onclick="closeModal(event, 'ach-modal')">
+    <div class="modal-content"> <span class="close-modal" onclick="document.getElementById('ach-modal').style.display='none'">&times;</span>
+      <h3>🏆 遊戲成就</h3>
+      <div style="width: 100%; height: 10px; background: #ddd; border-radius: 5px; margin-bottom: 15px; overflow: hidden;">
+        <div id="ach-progress-bar" style="height: 100%; background: #2ecc71; width: 0%; transition: width 0.5s;"></div>
+      </div>
+      <div id="ach-list"></div>
+    </div>
+  </div>
+  <div id="gallery-modal" class="modal-overlay" onclick="closeModal(event, 'gallery-modal')">
+    <div class="modal-content"> <span class="close-modal" onclick="document.getElementById('gallery-modal').style.display='none'">&times;</span>
+      <h3>📘 寵物圖鑑</h3>
+      <p style="font-size: 0.8rem; color: #666;">進度不隨轉生重置</p>
+      <div id="gallery-grid" class="gallery-grid"></div>
+    </div>
+  </div>
+  <div id="info-modal" class="modal-overlay">
+    <div class="modal-content" style="text-align: center;">
+      <h2 id="info-title" style="color: #f1c40f;">標題</h2>
+      <p id="info-desc" style="font-size: 1.1rem; margin: 20px 0;">內容</p> <button class="game-btn btn-click" onclick="document.getElementById('info-modal').style.display='none'" style="margin: 0 auto;">確定</button>
+    </div>
+  </div>
+  <script>
+    // --- 遊戲常數 ---
+    const RARITY_DATA = {
+      common: {
+        name: "普通",
+        color: "rarity-common",
+        multiplier: 1
+      },
+      rare: {
+        name: "稀有",
+        color: "rarity-rare",
+        multiplier: 5
+      },
+      epic: {
+        name: "史詩",
+        color: "rarity-epic",
+        multiplier: 20
+      },
+      legendary: {
+        name: "傳說",
+        color: "rarity-legendary",
+        multiplier: 100
+      },
+      mythical: {
+        name: "神話",
+        color: "rarity-mythical",
+        multiplier: 500
+      }
+    };
+
+    // 五大抽蛋機設定
+    const GACHA_TIERS = [{
+        id: 0,
+        name: "普通抽蛋機",
+        class: "g-tier-1",
+        cost: 100,
+        desc: "適合新手，機率一般。",
+        odds: {
+          common: 0.50,
+          rare: 0.30,
+          epic: 0.15,
+          legendary: 0.045,
+          mythical: 0.005
+        }
+      },
+      {
+        id: 1,
+        name: "高級抽蛋機",
+        class: "g-tier-2",
+        cost: 5000,
+        desc: "稍微好一點，普通怪減少。",
+        odds: {
+          common: 0.25,
+          rare: 0.40,
+          epic: 0.25,
+          legendary: 0.08,
+          mythical: 0.02
+        }
+      },
+      {
+        id: 2,
+        name: "特級抽蛋機",
+        class: "g-tier-3",
+        cost: 100000,
+        desc: "保底稀有！沒有普通怪。",
+        odds: {
+          common: 0.0,
+          rare: 0.30,
+          epic: 0.45,
+          legendary: 0.20,
+          mythical: 0.05
+        }
+      },
+      {
+        id: 3,
+        name: "大師抽蛋機",
+        class: "g-tier-4",
+        cost: 5000000,
+        desc: "大師之選，史詩起跳！",
+        odds: {
+          common: 0.0,
+          rare: 0.0,
+          epic: 0.40,
+          legendary: 0.45,
+          mythical: 0.15
+        }
+      },
+      {
+        id: 4,
+        name: "魔王抽蛋機",
+        class: "g-tier-5",
+        cost: 200000000,
+        desc: "50% 機率獲得神話！",
+        odds: {
+          common: 0.0,
+          rare: 0.0,
+          epic: 0.0,
+          legendary: 0.50,
+          mythical: 0.50
+        }
+      }
+    ];
+
+    const PET_NAMES = [
+      "史萊姆", "野豬", "蝙蝠", "小雞", "青蛙",
+      "骷髏", "戰狼", "巨鷹", "石頭人", "精靈",
+      "獨角獸", "吸血鬼", "九尾狐", "獅鷲",
+      "火龍", "鳳凰", "利維坦", "魔神", "創世神獸"
+    ];
+
+    const REBIRTH_THRESHOLD = 1000000;
+
+    // --- 成就定義 ---
+    const ACHIEVEMENTS = [{
+        id: 1,
+        icon: '💰',
+        title: '第一桶金',
+        desc: '累積擁有 $1,000',
+        check: (g) => g.money >= 1000
+      },
+      {
+        id: 2,
+        icon: '🏦',
+        title: '百萬富翁',
+        desc: '累積擁有 $1,000,000',
+        check: (g) => g.money >= 1000000
+      },
+      {
+        id: 3,
+        icon: '📦',
+        title: '收藏家',
+        desc: '擁有 10 隻寵物',
+        check: (g) => g.pets.length >= 10
+      },
+      {
+        id: 4,
+        icon: '🏰',
+        title: '大地主',
+        desc: '擴充至 8 個寵物欄位',
+        check: (g) => g.maxSlots >= 8
+      },
+      {
+        id: 5,
+        icon: '✨',
+        title: '幸運兒',
+        desc: '獲得「稀有」寵物',
+        check: (g) => g.collection.includes('稀有')
+      },
+      {
+        id: 6,
+        icon: '👑',
+        title: '傳說降臨',
+        desc: '獲得「傳說」寵物',
+        check: (g) => g.collection.includes('傳說')
+      },
+      {
+        id: 7,
+        icon: '👹',
+        title: '神話現身',
+        desc: '獲得「神話」寵物',
+        check: (g) => g.collection.includes('神話')
+      },
+      {
+        id: 8,
+        icon: '💪',
+        title: '培育大師',
+        desc: '擁有等級 50 的寵物',
+        check: (g) => g.pets.some(p => p.level >= 50)
+      },
+      {
+        id: 9,
+        icon: '🌀',
+        title: '輪迴大師',
+        desc: '完成 3 次轉生',
+        check: (g) => g.rebirthCount >= 3
+      }
+    ];
+
+    let gameData = {
+      money: 0,
+      pets: [],
+      maxSlots: 5,
+      slotCost: 500,
+      unlockedAchievements: [],
+      hasWon: false,
+      rebirthCount: 0,
+      moneyMultiplier: 1.0,
+      collection: [],
+      lastLoginTime: Date.now()
+    };
+
+    let upgradeMode = 1;
+
+    // --- 初始化 ---
+    function init() {
+      loadGame();
+
+      if (typeof gameData.rebirthCount === 'undefined') gameData.rebirthCount = 0;
+      if (typeof gameData.moneyMultiplier === 'undefined') gameData.moneyMultiplier = 1.0;
+      if (!gameData.collection) gameData.collection = [];
+
+      // 離線收益
+      if (gameData.lastLoginTime) {
+        let now = Date.now();
+        let diff = (now - gameData.lastLoginTime) / 1000;
+        if (diff > 60) {
+          let cps = calculateIncome();
+          if (cps > 0) {
+            let earned = cps * Math.floor(diff);
+            gameData.money += earned;
+            showInfoModal("歡迎回來！", `您離線了 ${formatTime(diff)}<br>寵物幫您賺了：<br><b style="color:#f1c40f; font-size:1.5rem;">$${formatNumber(earned)}</b>`);
+          }
+        }
+      }
+
+      if (gameData.pets.length === 0) {
+        addPet("common", "初心者史萊姆", true);
+      }
+
+      renderGachaShop(); // 渲染轉蛋商店
+      renderAchievements();
+      renderGallery();
+      updateUI();
+
+      // 每秒產錢
+      setInterval(() => {
+        let income = calculateIncome();
+        if (income > 0) {
+          gameData.money += income;
+          updateHeader();
+          checkAchievements();
+        }
+      }, 1000);
+
+      // UI 更新迴圈
+      setInterval(updateButtons, 200);
+
+      // ★★★ 自動存檔機制 (每5秒) ★★★
+      setInterval(() => {
+        saveGame(true); // true 代表顯示提示
+      }, 5000);
+
+      // ★★★ 關閉視窗前強制存檔 ★★★
+      window.addEventListener('beforeunload', () => {
+        saveGame(false);
+      });
+    }
+
+    // --- 核心邏輯 ---
+    function calculateIncome() {
+      let baseTotal = gameData.pets.reduce((acc, pet) => acc + pet.income, 0);
+      return Math.floor(baseTotal * gameData.moneyMultiplier);
+    }
+
+    function manualClick() {
+      let val = Math.floor(10 * gameData.moneyMultiplier);
+      gameData.money += val;
+      updateHeader();
+      checkAchievements();
+      createFloatingText(event.clientX, event.clientY, `+$${formatNumber(val)}`);
+    }
+
+    function buySlot() {
+      if (gameData.money >= gameData.slotCost) {
+        gameData.money -= gameData.slotCost;
+        gameData.maxSlots += 1;
+        gameData.slotCost = Math.floor(gameData.slotCost * 1.5);
+        showMessage(`擴充成功！上限: ${gameData.maxSlots}`);
+        saveGame(false); // 關鍵操作立即存檔
+        updateUI();
+      }
+    }
+
+    // 執行轉蛋
+    function drawGacha(tierIndex) {
+      if (gameData.pets.length >= gameData.maxSlots) {
+        showMessage("位置已滿！請先擴充或放生！");
+        return;
+      }
+
+      let machine = GACHA_TIERS[tierIndex];
+      if (gameData.money < machine.cost) {
+        showMessage("金幣不足！");
+        return;
+      }
+
+      gameData.money -= machine.cost;
+
+      // 根據機率表決定稀有度
+      let rand = Math.random();
+      let odds = machine.odds;
+      let rarity = "common";
+      let acc = 0;
+
+      // 依序累加機率檢查
+      if (rand < odds.mythical) rarity = "mythical";
+      else if (rand < odds.mythical + odds.legendary) rarity = "legendary";
+      else if (rand < odds.mythical + odds.legendary + odds.epic) rarity = "epic";
+      else if (rand < odds.mythical + odds.legendary + odds.epic + odds.rare) rarity = "rare";
+      else rarity = "common";
+
+      let name = PET_NAMES[Math.floor(Math.random() * PET_NAMES.length)];
+
+      addPet(rarity, name);
+      showMessage(`獲得 [${RARITY_DATA[rarity].name}] ${name}!`);
+      updateUI();
+      checkAchievements();
+      saveGame(false); // 抽蛋完立即存檔
+
+      // 關閉視窗 (可選，這裡不關閉方便連抽)
+      updateButtons(); // 刷新按鈕狀態
+    }
+
+    function addPet(rarityKey, name, isFree = false) {
+      let baseIncome = RARITY_DATA[rarityKey].multiplier * 5;
+      let newPet = {
+        id: Date.now() + Math.random(),
+        name: name,
+        rarity: rarityKey,
+        level: 1,
+        baseIncome: baseIncome,
+        income: baseIncome,
+        upgradeCost: baseIncome * 10
+      };
+      gameData.pets.push(newPet);
+
+      if (!gameData.collection.includes(name)) {
+        gameData.collection.push(name);
+        renderGallery();
+      }
+      let rName = RARITY_DATA[rarityKey].name;
+      if (!gameData.collection.includes(rName)) {
+        gameData.collection.push(rName);
+      }
+    }
+
+    function setUpgradeMode(mode) {
+      upgradeMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`mode-${mode}`).classList.add('active');
+      updateUI();
+    }
+
+    function upgradePet(petId) {
+      let pet = gameData.pets.find(p => p.id === petId);
+      if (!pet) return;
+
+      let levelsToBuy = 0;
+      let totalCost = 0;
+      let tempMoney = gameData.money;
+      let currentUpgradeCost = pet.upgradeCost;
+      let currentLevel = pet.level;
+
+      if (upgradeMode === 1) {
+        if (tempMoney >= currentUpgradeCost) {
+          levelsToBuy = 1;
+          totalCost = currentUpgradeCost;
+        }
+      } else if (upgradeMode === 10) {
+        for (let i = 0; i < 10; i++) {
+          if (tempMoney >= currentUpgradeCost) {
+            totalCost += currentUpgradeCost;
+            tempMoney -= currentUpgradeCost;
+            currentUpgradeCost = Math.floor(currentUpgradeCost * 1.3);
+            levelsToBuy++;
+          } else {
+            break;
+          }
+        }
+      } else if (upgradeMode === 'max') {
+        while (tempMoney >= currentUpgradeCost && levelsToBuy < 1000) {
+          totalCost += currentUpgradeCost;
+          tempMoney -= currentUpgradeCost;
+          currentUpgradeCost = Math.floor(currentUpgradeCost * 1.3);
+          levelsToBuy++;
+        }
+      }
+
+      if (levelsToBuy > 0) {
+        gameData.money -= totalCost;
+        // 重新計算最終數值 (避免中間誤差)
+        for (let i = 0; i < levelsToBuy; i++) {
+          pet.level++;
+          pet.income = Math.floor(pet.baseIncome * pet.level * 1.1);
+          pet.upgradeCost = Math.floor(pet.upgradeCost * 1.3);
+        }
+        createFloatingText(event.clientX, event.clientY, `Lv +${levelsToBuy}`);
+        updateUI();
+        saveGame(false); // 升級完立即存檔
+        checkAchievements();
+      } else {
+        showMessage("金幣不足！");
+      }
+    }
+
+    function deletePet(id) {
+      let pet = gameData.pets.find(p => p.id === id);
+      if (!pet) return;
+      if (confirm(`放生 [${RARITY_DATA[pet.rarity].name}] ${pet.name}？`)) {
+        gameData.pets = gameData.pets.filter(p => p.id !== id);
+        updateUI();
+        saveGame(false);
+      }
+    }
+
+    function rebirth() {
+      if (gameData.money < REBIRTH_THRESHOLD) return;
+      let nextMulti = 1 + ((gameData.rebirthCount + 1) * 0.5);
+
+      if (confirm(`🌀 轉生確認\n倍率將提升至 x${nextMulti}\n金錢、寵物將重置\n圖鑑與成就會保留`)) {
+        gameData.rebirthCount++;
+        gameData.moneyMultiplier = nextMulti;
+        gameData.money = 0;
+        gameData.pets = [];
+        // 欄位與擴充費用也重置
+        gameData.maxSlots = 5;
+        gameData.slotCost = 500;
+
+        addPet("common", "轉生史萊姆", true);
+
+        saveGame(true);
+        updateUI();
+        checkAchievements();
+        showInfoModal("轉生成功", `您的賺錢效率提升至 x${gameData.moneyMultiplier.toFixed(1)}！`);
+      }
+    }
+
+    // --- UI & 渲染 ---
+    function renderGachaShop() {
+      const container = document.getElementById('gacha-list-container');
+      container.innerHTML = "";
+      GACHA_TIERS.forEach((tier, index) => {
+        let div = document.createElement('div');
+        div.className = `gacha-item ${tier.class}`;
+        div.innerHTML = `
+                    <div class="gacha-info">
+                        <h4>${tier.name}</h4>
+                        <p>${tier.desc}</p>
+                        <p style="font-size:0.75rem; color:#999;">成本: $${formatNumber(tier.cost)}</p>
+                    </div>
+                    <button class="gacha-buy-btn" id="btn-gacha-${index}" onclick="drawGacha(${index})">
+                        抽獎 ($${formatNumber(tier.cost)})
+                    </button>
+                `;
+        container.appendChild(div);
+      });
+    }
+
+    function formatNumber(num) {
+      if (num < 1000) return Math.floor(num);
+      if (num < 1000000) return (num / 1000).toFixed(1) + 'k';
+      if (num < 1000000000) return (num / 1000000).toFixed(2) + 'M';
+      if (num < 1000000000000) return (num / 1000000000).toFixed(2) + 'B';
+      return (num / 1000000000000).toFixed(2) + 'T';
+    }
+
+    function formatTime(seconds) {
+      if (seconds < 60) return Math.floor(seconds) + "秒";
+      let mins = Math.floor(seconds / 60);
+      if (mins < 60) return mins + "分鐘";
+      return Math.floor(mins / 60) + "小時 " + (mins % 60) + "分鐘";
+    }
+
+    function updateHeader() {
+      document.getElementById('money').innerText = '$' + formatNumber(gameData.money);
+      document.getElementById('gps').innerText = '$' + formatNumber(calculateIncome()) + '/秒';
+      document.getElementById('multiplier').innerText = 'x' + gameData.moneyMultiplier.toFixed(1);
+      document.getElementById('click-val').innerText = formatNumber(Math.floor(10 * gameData.moneyMultiplier));
+
+      let slotEl = document.getElementById('slots');
+      slotEl.innerText = `${gameData.pets.length} / ${gameData.maxSlots}`;
+      if (gameData.pets.length >= gameData.maxSlots) slotEl.classList.add('full-slots');
+      else slotEl.classList.remove('full-slots');
+    }
+
+    function updateButtons() {
+      // 更新擴充按鈕
+      const slotBtn = document.getElementById('slotBtn');
+      document.getElementById('slot-cost-display').innerText = formatNumber(gameData.slotCost);
+      slotBtn.disabled = gameData.money < gameData.slotCost;
+
+      // 更新轉生按鈕
+      const rebirthBtn = document.getElementById('rebirthBtn');
+      rebirthBtn.style.display = (gameData.money >= REBIRTH_THRESHOLD) ? "flex" : "none";
+
+      // 更新商店內的抽獎按鈕狀態
+      if (document.getElementById('gacha-modal').style.display !== 'none') {
+        const isFull = gameData.pets.length >= gameData.maxSlots;
+        GACHA_TIERS.forEach((tier, index) => {
+          let btn = document.getElementById(`btn-gacha-${index}`);
+          if (btn) {
+            if (isFull) {
+              btn.disabled = true;
+              btn.innerText = "位置滿";
+            } else if (gameData.money < tier.cost) {
+              btn.disabled = true;
+              btn.innerText = "缺錢";
+            } else {
+              btn.disabled = false;
+              btn.innerText = `抽獎 ($${formatNumber(tier.cost)})`;
+            }
+          }
+        });
+      }
+    }
+
+    function updateUI() {
+      updateHeader();
+      updateButtons();
+
+      const list = document.getElementById('pet-list');
+      list.innerHTML = "";
+
+      let sortedPets = [...gameData.pets].sort((a, b) => {
+        const priority = {
+          mythical: 5,
+          legendary: 4,
+          epic: 3,
+          rare: 2,
+          common: 1
+        };
+        return (priority[b.rarity] - priority[a.rarity]) || (b.income - a.income);
+      });
+
+      sortedPets.forEach(pet => {
+        let rarityInfo = RARITY_DATA[pet.rarity];
+        let currentIncome = Math.floor(pet.income * gameData.moneyMultiplier);
+
+        let btnText = (upgradeMode === 'max') ? "MAX 升級" : (upgradeMode === 10 ? "升10級" : `升級 ($${formatNumber(pet.upgradeCost)})`);
+
+        let card = document.createElement('div');
+        card.className = `pet-card ${rarityInfo.color}`;
+        card.innerHTML = `
+                    <button class="btn-delete-pet" onclick="deletePet(${pet.id})" title="放生">✖</button>
+                    <div class="pet-rarity">${rarityInfo.name}</div>
+                    <div class="pet-icon">${getIconByRarity(pet.rarity)}</div>
+                    <div class="pet-name">${pet.name}</div>
+                    <div class="pet-stats">Lv.${pet.level}</div>
+                    <div class="pet-stats" style="color:#27ae60; font-weight:bold;">+$${formatNumber(currentIncome)}/秒</div>
+                    <button class="btn-upgrade" onclick="upgradePet(${pet.id})">${btnText}</button>
+                `;
+        list.appendChild(card);
+      });
+    }
+
+    // --- 模態視窗與圖鑑 ---
+    function openModal(id) {
+      document.getElementById(id).style.display = 'flex';
+      updateButtons();
+    }
+
+    function closeModal(e, id) {
+      if (e.target.id === id) {
+        document.getElementById(id).style.display = 'none';
+      }
+    }
+
+    function showInfoModal(title, desc) {
+      document.getElementById('info-title').innerText = title;
+      document.getElementById('info-desc').innerHTML = desc;
+      document.getElementById('info-modal').style.display = 'flex';
+    }
+
+    function renderGallery() {
+      const grid = document.getElementById('gallery-grid');
+      grid.innerHTML = "";
+      PET_NAMES.forEach(name => {
+        let isCollected = gameData.collection.includes(name);
+        let div = document.createElement('div');
+        div.className = `gallery-item ${isCollected ? 'collected' : ''}`;
+        div.innerHTML = `
+                    <div class="g-icon">${isCollected ? '🐾' : '?'}</div>
+                    <div class="g-name">${name}</div>
+                `;
+        grid.appendChild(div);
+      });
+    }
+
+    function renderAchievements() {
+      const list = document.getElementById('ach-list');
+      list.innerHTML = '';
+      let unlockedCount = 0;
+      ACHIEVEMENTS.forEach(ach => {
+        const isUnlocked = gameData.unlockedAchievements.includes(ach.id);
+        if (isUnlocked) unlockedCount++;
+        const item = document.createElement('div');
+        item.style.cssText = `background: ${isUnlocked?'#fff3cd':'#eee'}; margin-bottom:10px; padding:10px; border-radius:8px; display:flex; align-items:center; gap:10px; opacity:${isUnlocked?1:0.6}; border: ${isUnlocked?'2px solid #ffc107':'none'}`;
+        item.innerHTML = `
+                    <div style="font-size:1.5rem">${ach.icon}</div>
+                    <div style="flex:1"><h4 style="margin:0">${ach.title}</h4><p style="margin:0; font-size:0.8rem; color:#666">${ach.desc}</p></div>
+                    <div style="font-size:1.2rem">${isUnlocked ? '✅' : '🔒'}</div>
+                `;
+        list.appendChild(item);
+      });
+      document.getElementById('ach-badge').innerText = `${unlockedCount}/${ACHIEVEMENTS.length}`;
+      document.getElementById('ach-progress-bar').style.width = `${(unlockedCount / ACHIEVEMENTS.length) * 100}%`;
+    }
+
+    function checkAchievements() {
+      let newlyUnlocked = false;
+      ACHIEVEMENTS.forEach(ach => {
+        if (!gameData.unlockedAchievements.includes(ach.id)) {
+          if (ach.check(gameData)) {
+            gameData.unlockedAchievements.push(ach.id);
+            showMessage(`🏆 解鎖成就：${ach.title}`);
+            newlyUnlocked = true;
+          }
+        }
+      });
+      if (newlyUnlocked) {
+        saveGame(true); // 成就解鎖也要存檔
+        renderAchievements();
+        if (gameData.unlockedAchievements.length === ACHIEVEMENTS.length && !gameData.hasWon) {
+          gameData.hasWon = true;
+          showInfoModal("🎉 恭喜完全通關！", "您已成為真正的夢幻寵物大師！");
+        }
+      }
+    }
+
+    function getIconByRarity(rarity) {
+      switch (rarity) {
+        case 'common':
+          return '🐮';
+        case 'rare':
+          return '🐺';
+        case 'epic':
+          return '🦄';
+        case 'legendary':
+          return '🐲';
+        case 'mythical':
+          return '👹';
+        default:
+          return '🥚';
+      }
+    }
+
+    function createFloatingText(x, y, text) {
+      let el = document.createElement('div');
+      el.innerText = text;
+      el.style.cssText = `position:fixed; left:${x}px; top:${y}px; color:#27ae60; font-weight:bold; pointer-events:none; transition:all 0.8s; z-index:4000; font-size:1.2rem; text-shadow: 1px 1px 0 #fff;`;
+      document.body.appendChild(el);
+      setTimeout(() => {
+        el.style.top = (y - 50) + 'px';
+        el.style.opacity = 0;
+      }, 50);
+      setTimeout(() => {
+        el.remove();
+      }, 800);
+    }
+
+    function showMessage(msg) {
+      let area = document.getElementById('message-area');
+      area.innerText = msg;
+      area.classList.add('show-message');
+      setTimeout(() => {
+        area.classList.remove('show-message');
+      }, 2000);
+    }
+
+    // ★★★ 即時存檔邏輯 ★★★
+    function saveGame(showToast = false) {
+      gameData.lastLoginTime = Date.now();
+      localStorage.setItem('petTycoonSave_v7', JSON.stringify(gameData));
+
+      if (showToast) {
+        let toast = document.getElementById('save-toast');
+        toast.classList.add('show-save');
+        setTimeout(() => {
+          toast.classList.remove('show-save');
+        }, 1500);
+      }
+    }
+
+    function loadGame() {
+      let save = localStorage.getItem('petTycoonSave_v7');
+      if (!save) save = localStorage.getItem('petTycoonSave_v6');
+
+      if (save) {
+        try {
+          let parsed = JSON.parse(save);
+          gameData = { ...gameData,
+            ...parsed
+          };
+        } catch (e) {}
+      }
+    }
+
+    function hardReset() {
+      if (confirm("🔥 警告：這將刪除所有進度（包括圖鑑與成就）且無法復原！確定嗎？")) {
+        localStorage.removeItem('petTycoonSave_v7');
+        location.reload();
+      }
+    }
+
+    init();
+  </script>
+</body>
+
+</html>
